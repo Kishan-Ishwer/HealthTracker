@@ -4,6 +4,7 @@ import { View, Button, StyleSheet, Text, Alert, ActivityIndicator } from "react-
 
 // Import useNavigation from React Navigation
 import { useNavigation } from "@react-navigation/native";
+import { RootStackNavigation } from './src/types/navigation';
 
 import {
   aggregateRecord,
@@ -22,8 +23,10 @@ import {
 
 const ConnectScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const navigation = useNavigation();
+  const navigation = useNavigation<RootStackNavigation>();
   const [isConnected, setIsConnected] = useState(false);
+
+  
 
   const handleConnect = async () => {
     setIsLoading(true);
@@ -41,11 +44,15 @@ const ConnectScreen = () => {
       }
 
       setIsConnected(true);
-
       console.log("Connection successful!");
 
       navigation.replace("MainMenu");
-      console.error("Connection failed:", error);
+
+      return;
+
+    } catch (e: any) {
+      setIsConnected(false);
+      console.error("Connection failed:", Error);
       Alert.alert("Error", "Failed to connect. Please try again.");
     } finally {
       setIsLoading(false);

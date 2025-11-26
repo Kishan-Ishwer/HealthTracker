@@ -34,7 +34,7 @@
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "minSdkVersion": 26
+            "minSdkVersion": 28
           }
         }
       ],
@@ -44,6 +44,29 @@
       "eas": {
         "projectId": "f6720845-f687-4178-bc0f-e05f932f4e23"
       }
-    }
+    },
+    "permissions": [
+        "INTERNET",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_DISTANCE",
+        "android.permission.health.READ_TOTAL_CALORIES_BURNED",
+        "android.permission.health.READ_BASAL_METABOLIC_RATE",
+        "android.permission.health.READ_BODY_FAT",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_BLOOD_GLUCOSE",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.WRITE_STEPS",
+        "android.permission.health.WRITE_DISTANCE",
+        "android.permission.health.WRITE_WEIGHT",
+        "android.permission.health.WRITE_HEART_RATE",
+        "android.permission.health.WRITE_SLEEP"
+      ],
+      "config": {
+        "queries": {
+          "package": "com.google.android.healthconnect.client"
+        }
+      }
   }
 }

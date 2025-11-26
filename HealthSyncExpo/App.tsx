@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button, StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { RootStackParamList } from './src/types/navigation';
 import {
   aggregateRecord,
   getGrantedPermissions,
@@ -20,7 +21,7 @@ import {
 import ConnectScreen from "./ConnectScreen";
 import MainMenuScreen from "./MainMenuScreen";
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 
 
