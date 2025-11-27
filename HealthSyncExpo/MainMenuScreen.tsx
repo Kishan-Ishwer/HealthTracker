@@ -23,9 +23,12 @@ interface RecordsResult {
     records?: any[];
 }
 
-const BACKEND_IP = '192.168.1.113'; 
-const INGESTION_URL = `http://${BACKEND_IP}:3000/api/v1/ingest/health-data`;
+const BACKEND_IP_INGESTION = '127.0.0.1';
+const BACKEND_IP_SUMMARY = '192.168.1.113';
+const INGESTION_URL = `http://${BACKEND_IP_INGESTION}:3000/api/v1/ingest/health-data`;
+const CS_BASE_URL = `http://${BACKEND_IP_SUMMARY}:8080/api/Data`; 
 const USER_ID = 'user-abc-123';
+const SUMMARY_URL = `${CS_BASE_URL}/summary/${USER_ID}`;
 
 const today = new Date();
 const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
@@ -81,9 +84,12 @@ const getRawRecordsForIngestion = async (startTime: string, endTime: string) => 
 };
 
 const MainMenuScreen = (props: MainMenuScreenProps) => {
+    const { navigation } = props;
+
     const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
     const [syncMessage, setSyncMessage] = useState<string>('Ready to sync device health data.');
     const [postCount, setPostCount] = useState<number>(0);
+    const [isDataFetching, setIsDataFetching] = useState(false);
 
     const permissions: Permission[] = ALL_READ_PERMISSIONS.map(recordType => ({
         accessType: 'read',
@@ -101,9 +107,6 @@ const MainMenuScreen = (props: MainMenuScreenProps) => {
             const granted = await requestPermission(permissions);
             
             setSyncMessage(`Fetching Health Connect data...`);
-            
-            const today = new Date();
-            const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
             
             // 3. Get Data
             const recordsToSync = await getRawRecordsForIngestion(startTime, endTime);
@@ -139,6 +142,37 @@ const MainMenuScreen = (props: MainMenuScreenProps) => {
         }
     };
 
+    const handleViewData = async () => {
+        setIsDataFetching(true);
+        setSyncMessage("Fetching processed summary from C# API...");
+
+        try {
+            const response = await fetch(`${SUMMARY_URL}?userId=${USER_ID}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json'},
+            });
+
+            if (!response.ok) {
+                throw new Error(`C# API responded with status ${response.status}`);
+            }
+
+            const processedData = await response.json();
+
+            navigation.navigate("DataView", {userData: processedData});
+        } catch (e: any) {
+            setSyncStatus('error');
+            setSyncMessage(`View Data Error: ${e.message.substring(0, 100)}...`);
+            Alert.alert("Data Error", "Could not fetch processed data from C# API. Check server connection.");
+            console.error("View Data Fetch Error:", e);
+        } finally {
+            setIsDataFetching(false);
+            if (syncStatus !== 'error') {
+                setSyncMessage(`Synced ${postCount} reccords. Ready to view`)
+            }
+        }
+
+    };
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.header}>Dashboard</Text>
@@ -152,6 +186,11 @@ const MainMenuScreen = (props: MainMenuScreenProps) => {
                 title={syncStatus === 'syncing' ? "Syncing..." : "Sync Health Data"} 
                 onPress={handleSync} 
                 disabled={syncStatus === 'syncing'}
+            />
+            <Button 
+                title={isDataFetching ? "Loading Data..." : "View Data"} 
+                onPress={handleViewData} 
+                disabled={syncStatus === 'syncing' || isDataFetching || syncStatus !== 'complete'}
             />
         </ScrollView>
     );

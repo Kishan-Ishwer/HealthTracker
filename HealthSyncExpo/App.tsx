@@ -20,6 +20,7 @@ import {
 
 import ConnectScreen from "./ConnectScreen";
 import MainMenuScreen from "./MainMenuScreen";
+import DataDashboardScreen from "./DataDashboardScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -45,7 +46,12 @@ export default function App() {
         <Stack.Screen
           name="MainMenu"
           component={MainMenuScreen}
-          options={{ title: "Dashboard" }}
+          options={{ title: "Sync Dashboard" }}
+        />
+        <Stack.Screen
+          name="DataView"
+          component={DataDashboardScreen}
+          options={{ title: "Data Dashboard" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
