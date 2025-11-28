@@ -5,9 +5,9 @@ const { Pool } = require("pg");
 // Create a new connection pool using the variables loaded from .env
 const pool = new Pool({
   user: "postgres",
-  host: "127.0.0.1", // Use this fixed host
-  database: "health_tracker", // The fixed database name
-  password: "mysecretpassword", // Your actual password
+  host: "127.0.0.1",
+  database: "health_tracker",
+  password: "mysecretpassword",
   port: 5432,
   connectionTimeoutMillis: 5000,
 });

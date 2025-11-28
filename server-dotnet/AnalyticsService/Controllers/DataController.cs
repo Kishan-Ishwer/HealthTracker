@@ -11,13 +11,13 @@ namespace AnalyticsService.Controllers
     public class DataController : ControllerBase
     {
         private readonly IHealthAnalyticsService _analyticsService;
-        private readonly HealthContext _context;
+        private readonly SummaryContext _summaryContext;
 
         // DI: The Services are auto provided
-        public DataController(IHealthAnalyticsService analyticsService, HealthContext context)
+        public DataController(IHealthAnalyticsService analyticsService, SummaryContext summaryContext)
         {
             _analyticsService = analyticsService;
-            _context = context;
+            _summaryContext = summaryContext;
         }
 
         // 1. EndPoint to Trigger Data Processing
@@ -35,7 +35,21 @@ namespace AnalyticsService.Controllers
         [HttpGet("summary/{userId}")]
         public async Task<ActionResult<IEnumerable<DailySummary>>> GetDailySummary(string userId)
         {
-            var summaries = await _context.DailySummaries
+
+            var userStatus = await _summaryContext.UserStatus.FindAsync(userId);
+
+            if (userStatus != null && userStatus.IsProcessing)
+            {
+                // Status code 425 Too Early indicates the data is being prepared/updated.
+                // This forces the client to retry later, guaranteeing data consistency.
+                return StatusCode(425, new
+                {
+                    message = "Data processing is currently running. Please wait and retry the request.",
+                    status = "processing_pending"
+                });
+            }
+
+            var summaries = await _summaryContext.DailySummaries
                 .Where(s => s.UserId == userId)
                 .OrderByDescending(s => s.SummaryDate)
                 .ToListAsync();
