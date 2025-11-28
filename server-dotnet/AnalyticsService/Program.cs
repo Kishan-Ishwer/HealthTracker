@@ -1,5 +1,7 @@
 using AnalyticsService.Data;
+using AnalyticsService.Data.Models;
 using AnalyticsService.Services;
+using AnalyticsService.Workers;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -18,6 +20,13 @@ builder.Services.AddDbContext<HealthContext>(options =>
     options.UseNpgsql(connectionString)
 );
 
+var sqliteConnectionString = builder.Configuration.GetConnectionString("ProcessingStatusConnection")
+                             ?? "Data Source=processing_status.db";
+
+builder.Services.AddDbContext<ProcessingStatusContext>(options =>
+    options.UseSqlite(sqliteConnectionString)
+);
+
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 builder.Services.AddCors(options =>
@@ -34,13 +43,18 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<IHealthAnalyticsService, HealthAnalyticsService>();
 
-builder.Services.AddControllers();
+builder.Services.AddHostedService<ProcessingQueueConsumer>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var statusContext = scope.ServiceProvider.GetRequiredService<ProcessingStatusContext>();
+    statusContext.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {

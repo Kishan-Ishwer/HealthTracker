@@ -3,21 +3,42 @@ using AnalyticsService.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Collections.Generic;
+using AnalyticsService.Data.Models;
 
 namespace AnalyticsService.Services
 {
     public class HealthAnalyticsService : IHealthAnalyticsService
     {
-        private readonly HealthContext _context;
+        private readonly HealthContext _healthContext;
 
-        public HealthAnalyticsService(HealthContext context)
+        private readonly ProcessingStatusContext _statusContext;
+
+        public HealthAnalyticsService(HealthContext healthContext, ProcessingStatusContext statusContext)
         {
-            _context = context;
+            _healthContext = healthContext;
+            _statusContext = statusContext;
+        }
+
+
+        public async Task SetUserProcessingStatus(string userId, bool isProcessing)
+        {
+
+            var existingStatus = await _statusContext.ProcessingStatuses.FindAsync(userId);
+
+            if (existingStatus == null)
+            {
+                existingStatus = new ProcessingStatus { UserId = userId };
+                _statusContext.ProcessingStatuses.Add(existingStatus);
+            }
+
+            existingStatus.IsProcessing = isProcessing;
+            await _statusContext.SaveChangesAsync();
+            Console.WriteLine($"[Status] User {userId} processing lock set to: {isProcessing}");
         }
 
         public async Task ProcessRawDataAsync(string userId)
         {
-            var rawData = await _context.RawData
+            var rawData = await _healthContext.RawData
                 .Where(r => r.UserId == userId)
                 .ToListAsync();
 
@@ -34,10 +55,9 @@ namespace AnalyticsService.Services
 
             foreach (var group in dailyGroups)
             {
-                var summaryDate = group.Key;
+                var summaryDate = DateOnly.FromDateTime(group.Key.ToDateTime(TimeOnly.MinValue));
                 var recordsInGroup = group.ToList();
 
-                // --- 3. CALCULATE TOTAL STEPS ---
                 int totalSteps = recordsInGroup
                     .Where(r => r.Data != null)
                     .Where(r =>
@@ -46,7 +66,6 @@ namespace AnalyticsService.Services
                         typeProp.GetString() == "Steps")
                     .Sum(r => r.Data!.RootElement.GetProperty("data").GetProperty("count").GetInt32());
 
-                // --- 4. CALCULATE AVERAGE HEART RATE ---
                 var heartRateData = recordsInGroup
                     .Where(r => r.Data != null)
                     .Where(r =>
@@ -59,7 +78,6 @@ namespace AnalyticsService.Services
                 double avgHeartRate = heartRateData.Any() ? heartRateData.Average() : 0.0;
 
 
-                // --- 5. CALCULATE TOTAL SLEEP HOURS ---
                 int totalSleepMinutes = recordsInGroup
                     .Where(r => r.Data != null)
                     .Where(r =>
@@ -71,36 +89,30 @@ namespace AnalyticsService.Services
                 double totalSleepHours = totalSleepMinutes / 60.0; // Convert minutes to hours
 
 
-                // --- 6. Create or Update Summary Record ---
-                var summary = await _context.DailySummaries
+                var summary = await _healthContext.DailySummaries
                     .FirstOrDefaultAsync(s => s.UserId == userId && s.SummaryDate == summaryDate);
 
                 if (summary == null)
                 {
                     summary = new DailySummary { UserId = userId, SummaryDate = summaryDate };
-                    _context.DailySummaries.Add(summary);
+                    _healthContext.DailySummaries.Add(summary);
                 }
 
-                // --- 7. Update Calculated Fields ---
                 summary.TotalSteps = totalSteps;
                 summary.AvgHeartRate = avgHeartRate;
                 summary.TotalSleepHours = totalSleepHours;
                 summary.CalculationTime = DateTime.UtcNow;
 
-                // --- 8. Add all records from this successful daily group to the deletion list ---
                 processedRecords.AddRange(recordsInGroup);
             }
 
-            // --- 9. DATA CLEANUP: Mark processed records for deletion ---
             if (processedRecords.Any())
             {
-                _context.RawData.RemoveRange(processedRecords);
+                _healthContext.RawData.RemoveRange(processedRecords);
             }
+            await _healthContext.SaveChangesAsync();
 
-            // 10. Save Changes: This performs two operations in one transaction:
-            //    A) Inserts/Updates DailySummaries.
-            //    B) Deletes the processed RawDataRecords.
-            await _context.SaveChangesAsync();
         }
+
     }
 }

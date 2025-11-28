@@ -1,27 +1,34 @@
+using AnalyticsService.Data;
+using AnalyticsService.Data.Models; // Ensure this points to your DailySummary and ProcessingStatus models
 using AnalyticsService.Models;
 using AnalyticsService.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using AnalyticsService.Data; // Required for HealthContext
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace AnalyticsService.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // this sets tje base URL to /api/Data
+    [Route("api/[controller]")] // this sets the base URL to /api/Data
     public class DataController : ControllerBase
     {
-        private readonly IHealthAnalyticsService _analyticsService;
-        private readonly SummaryContext _summaryContext;
+        private readonly HealthContext _healthContext;
+        private readonly ProcessingStatusContext _statusContext;
 
-        // DI: The Services are auto provided
-        public DataController(IHealthAnalyticsService analyticsService, SummaryContext summaryContext)
+        private readonly IHealthAnalyticsService _analyticsService;
+
+        public DataController(
+            HealthContext healthContext,
+            ProcessingStatusContext statusContext,
+            IHealthAnalyticsService analyticsService)
         {
+            _healthContext = healthContext;
+            _statusContext = statusContext;
             _analyticsService = analyticsService;
-            _summaryContext = summaryContext;
         }
 
-        // 1. EndPoint to Trigger Data Processing
-        // POST /api/data/process/user-abc-123
         [HttpPost("process/{userId}")]
         public async Task<IActionResult> ProcessData(string userId)
         {
@@ -36,12 +43,11 @@ namespace AnalyticsService.Controllers
         public async Task<ActionResult<IEnumerable<DailySummary>>> GetDailySummary(string userId)
         {
 
-            var userStatus = await _summaryContext.UserStatus.FindAsync(userId);
+            var userStatus = await _statusContext.ProcessingStatuses.FindAsync(userId);
 
             if (userStatus != null && userStatus.IsProcessing)
             {
-                // Status code 425 Too Early indicates the data is being prepared/updated.
-                // This forces the client to retry later, guaranteeing data consistency.
+
                 return StatusCode(425, new
                 {
                     message = "Data processing is currently running. Please wait and retry the request.",
@@ -49,7 +55,7 @@ namespace AnalyticsService.Controllers
                 });
             }
 
-            var summaries = await _summaryContext.DailySummaries
+            var summaries = await _healthContext.DailySummaries
                 .Where(s => s.UserId == userId)
                 .OrderByDescending(s => s.SummaryDate)
                 .ToListAsync();
@@ -59,7 +65,6 @@ namespace AnalyticsService.Controllers
                 return NotFound($"No summary data found for user ID: {userId}");
             }
 
-            //Return the list of summaries as a 200 OK response
             return summaries;
         }
     }
