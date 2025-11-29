@@ -24,11 +24,11 @@ interface RecordsResult {
 }
 
 const BACKEND_IP_INGESTION = '127.0.0.1';
-const BACKEND_IP_SUMMARY = '192.168.1.113';
+const BACKEND_IP_SUMMARY = '10.0.2.2';
 const INGESTION_URL = `http://${BACKEND_IP_INGESTION}:3000/api/v1/ingest/health-data`;
-const CS_BASE_URL = `http://${BACKEND_IP_SUMMARY}:8080/api/Data`; 
+const CS_BASE_URL = `http://${BACKEND_IP_SUMMARY}:5001/api/Data`; 
 const USER_ID = 'user-abc-123';
-const SUMMARY_URL = `${CS_BASE_URL}/summary/${USER_ID}`;
+const SUMMARY_URL = `${CS_BASE_URL}/summary/`;
 
 const today = new Date();
 const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
@@ -147,7 +147,7 @@ const MainMenuScreen = (props: MainMenuScreenProps) => {
         setSyncMessage("Fetching processed summary from C# API...");
 
         try {
-            const response = await fetch(`${SUMMARY_URL}?userId=${USER_ID}`, {
+                const response = await fetch(`${SUMMARY_URL}${USER_ID}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json'},
             });

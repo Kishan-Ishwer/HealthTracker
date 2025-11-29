@@ -45,6 +45,9 @@ builder.Services.AddScoped<IHealthAnalyticsService, HealthAnalyticsService>();
 
 builder.Services.AddHostedService<ProcessingQueueConsumer>();
 
+builder.Services.AddControllers();
+builder.Services.AddAuthorization();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
