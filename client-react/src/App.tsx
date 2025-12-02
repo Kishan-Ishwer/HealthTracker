@@ -27,15 +27,8 @@ interface MetricCardProps {
 }
 
 // --- CONSTANTS ---
-const API_URL = 'http://localhost:5001/api/Summary/user-abc-123';
+const API_URL = 'http://localhost:5001/api/data/summary/user-abc-123';
 
-const mockSummary: DailySummary = {
-  summaryDate: '2023-01-01',
-  totalSteps: 0,
-  totalSleepHours: 0.0,
-  avgHeartRate: 0.0,
-  calculationTime: '2023-01-01T00:00:00Z',
-};
 
 // --- HELPER FUNCTIONS ---
 
